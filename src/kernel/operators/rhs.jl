@@ -659,3 +659,59 @@ function build_rhs_source(SD::NSD_2D,
     return M*S   
 end
 
+function build_rhs(SD::NSD_1D, QT::Inexact, PT::LevelSet, qp::Array, neqs, basis, ω, mesh::St_mesh, metrics::St_metrics, M, De, Le, time, inputs, Δt, T)
+
+    F      = zeros(mesh.ngl,mesh.nelem, neqs)
+    F1     = zeros(mesh.ngl,mesh.nelem, neqs)
+    rhs_el = zeros(mesh.ngl,mesh.nelem, neqs)
+    qq     = zeros(mesh.npoin,neqs)
+    for i=1:neqs
+        idx = (i-1)*mesh.npoin
+        qq[:,i] .= qp[idx+1:i*mesh.npoin]
+    end
+    qq[:,1] = max.(qq[:,1],0.001)
+    Fuser, Fuser1 = user_flux(T, SD, qq, mesh)
+    dFdx = zeros(neqs)
+    dFdξ = zeros(neqs)
+    gHsx = zeros(neqs)
+    for iel=1:mesh.nelem
+
+        for i=1:mesh.ngl
+                ip = mesh.conn[i,iel]
+                F[i,iel,1] = Fuser[ip,1]
+                F[i,iel,2] = Fuser[ip,2]
+
+                F1[i,iel,1] = Fuser1[ip,1]
+                F1[i,iel,2] = Fuser1[ip,2]
+                #@info Fuser[ip,1] + Fuser1[ip,1], Fuser[ip,2] + Fuser1[ip,2]
+        end
+
+        for i=1:mesh.ngl
+                dFdξ = zeros(T, neqs)
+                dFdξ1 = zeros(T, neqs)
+                for k = 1:mesh.ngl
+                    dFdξ[1:neqs] .= dFdξ[1:neqs] .+ basis.dψ[k,i]*F[k,iel,1:neqs]
+
+                    dFdξ1[1:neqs] .= dFdξ1[1:neqs] .+ basis.dψ[k,i]*F1[k,iel,1:neqs]
+                    #@info i,dFdξ[1:neqs], dFdξ1[1:neqs]
+                end
+                ip = mesh.conn[i,iel]
+                x = mesh.x[ip]
+                Hb = bathymetry(x)
+                Hs = max(qq[ip,1] - Hb,0.001)
+                gHsx[1] = 1.0
+                gHsx[2] = Hs*9.81
+                dFdx .= gHsx .* (dFdξ[1:neqs]) .+ dFdξ1[1:neqs]
+                rhs_el[i,iel,1:neqs] .-= ω[i]*mesh.Δx[iel]/2*dFdx[1:neqs]
+        end
+    end
+    rhs_diff_el = build_rhs_diff(SD, QT, PT, qp,  neqs, basis, ω, inputs[:νx], inputs[:νy], mesh, metrics, T)
+    apply_boundary_conditions!(SD, rhs_el, qq, mesh, inputs, QT, metrics, basis.ψ, basis.dψ, ω, Δt*(floor(time/Δt)), neqs)
+    for i=1:neqs
+        idx = (i-1)*mesh.npoin
+        qp[idx+1:i*mesh.npoin] .= qq[:,i]
+    end
+    RHS = DSS_rhs(SD, rhs_el .+ rhs_diff_el, mesh.connijk, mesh.nelem, mesh.npoin, neqs, mesh.nop, T)
+    divive_by_mass_matrix!(RHS, M, QT,neqs)
+    return RHS
+end
