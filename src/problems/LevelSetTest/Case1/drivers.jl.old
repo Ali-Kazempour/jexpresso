@@ -1,0 +1,146 @@
+include("./initialize.jl")
+
+#--------------------------------------------------------
+function driver(DT::ContGal,       #Space discretization type
+                inputs::Dict,      #input parameters from src/user_input.jl
+                OUTPUT_DIR::String,
+                TFloat) 
+
+    Nξ = inputs[:nop]
+    lexact_integration = inputs[:lexact_integration]    
+    PT    = inputs[:problem]
+    neqns = inputs[:neqns]
+    
+    #--------------------------------------------------------
+    # Create/read mesh
+    # return mesh::St_mesh
+    # and Build interpolation nodes
+    #             the user decides among LGL, GL, etc. 
+    # Return:
+    # ξ = ND.ξ.ξ
+    # ω = ND.ξ.ω
+    #--------------------------------------------------------
+    mesh = mod_mesh_mesh_driver(inputs)
+
+   
+    #--------------------------------------------------------
+    # Build interpolation and quadrature points/weights
+    #--------------------------------------------------------
+    ξω  = basis_structs_ξ_ω!(inputs[:interpolation_nodes], mesh.nop)    
+    ξ,ω = ξω.ξ, ξω.ω
+
+    #
+    # Inexact quadrature:
+    # Quadrature and interpolation orders coincide (Q = N)
+    #
+    QT  = Inexact() #Quadrature Type
+    QT_String = "Inexact"
+    Qξ  = Nξ
+    ξωq = ξω
+    ξq  = ξ        
+    ω   = ξω.ω
+
+    if (mesh.nsd == 1)
+        SD = NSD_1D()
+    elseif (mesh.nsd == 2)
+        SD = NSD_2D()
+    elseif (mesh.nsd == 3)
+        SD = NSD_3D()
+    else
+        error(" Drivers.jl: Number of space dimnnsions unknow! CHECK Your grid!")
+    end
+    #--------------------------------------------------------
+    # Build Lagrange polynomials:
+    #
+    # Return:
+    # ψ     = basis.ψ[N+1, Q+1]
+    # dψ/dξ = basis.dψ[N+1, Q+1]
+    #--------------------------------------------------------
+    basis = build_Interpolation_basis!(LagrangeBasis(), ξ, ξq, TFloat)
+    #--------------------------------------------------------
+    # Build metric terms
+    #--------------------------------------------------------
+    metrics = build_metric_terms(SD, COVAR(), mesh, basis, Nξ, Qξ, ξ, TFloat)
+
+    #periodicity_restructure!(mesh,inputs)   #is this the correct boundary condition? 
+    #--------------------------------------------------------
+    # Build element mass matrix
+    # This will be unique for this problem
+    # There is no differentiation matrix
+    #-------------------------------------------------------- 
+    Le = build_laplace_matrix(SD,     basis.ψ, basis.dψ, ω, mesh, metrics, Nξ, Qξ, TFloat)
+    #OLD! Me =            build_mass_matrix(SD, QT, basis.ψ,           ω, mesh, metrics, Nξ, Qξ, TFloat)
+    Me = zeros(TFloat, Nξ+1, mesh.nelem)
+       
+    for iel=1:mesh.nelem
+        Jac = mesh.Δx[iel]/2
+        
+        for i=1:Nξ+1
+            Me[i,iel] += Jac*ω[i]
+        end
+    end
+
+    M = DSS_mass(SD, QT, Me, mesh.connijk, mesh.nelem, mesh.npoin, Nξ, TFloat)
+
+    Del = zeros(Nξ+1, Nξ+1, mesh.nelem)
+
+    for iel=1:mesh.nelem
+        Jac = mesh.Δx[iel]/2
+        
+        for i=1:Nξ+1
+            for iq=1:Qξ+1, j=1:Nξ+1
+                Del[i,j,iel] += ω[iq]*basis.dψ[j,iq] #Sparse
+            end
+        end
+    end
+
+    #--------------------------------------------------------
+    # Initialize q
+    #--------------------------------------------------------
+    qp = initialize(SD, PT, mesh, inputs, OUTPUT_DIR, TFloat)
+
+    Δt = inputs[:Δt]
+    C = 0.25
+    u = 2.0
+    Δt = C*u*minimum(mesh.Δx)/mesh.nop
+    Nt = floor((inputs[:tend] - inputs[:tinit])/Δt)
+    
+    #
+    # ALGO 5.6 FROM GIRALDO: GLOBAL VERSION WITH SOLID-WALL B.C. AS A FIRST TEST
+    #
+    plt2 = scatter() #Clear plot
+   #= 
+    RK = RK_Integrator{TFloat}(zeros(TFloat,5),zeros(TFloat,5),zeros(TFloat,5))
+    buildRK5Integrator!(RK)
+    for it = 1:Nt
+        
+        dq = zeros(mesh.npoin);
+        qe = zeros(mesh.ngl);
+        for s = 1:length(RK.a)
+            
+            #
+            # RHS
+            # (SD::NSD_1D, QT::Inexact, PT::LevelSet, qp::Array, neqs, basis, ω, mesh::St_mesh, metrics::St_metrics, M, De, Le, time, inputs, Δt, T)
+            rhs = build_rhs(SD, QT, LevelSet(), qp, metrics, M, el_mat, u*qp)
+
+            for I=1:mesh.npoin
+                dq[I] = RK.a[s]*dq[I] + Δt*rhs[I]
+                qp[I] = qp[I] + RK.b[s]*dq[I]
+            end
+
+            #
+            # B.C.: solid wall
+            #
+            qp[1] = 0.0
+            qp[mesh.npoin_linear] = 0.0
+
+        end #stages
+
+        title = string("Solution for N=", Nξ, " & ", QT_String, " integration")
+        plt2 = scatter(mesh.x, qp,  title=title)
+        display(plt2)
+    end
+   
+    #Out-to-file:
+    #write_output(solution, SD, mesh, OUTPUT_DIR, inputs, inputs[:outformat])  
+end
