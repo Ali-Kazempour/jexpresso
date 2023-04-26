@@ -10,3 +10,4 @@ struct Helmholtz <: AbstractProblem end
 struct LevelSet <: AbstractProblem end
 struct ShallowWater <: AbstractProblem end
 struct Euler <: AbstractProblem end
+struct Redist <: AbstractProblem end

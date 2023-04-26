@@ -358,6 +358,11 @@ elseif (lowercase(problem_name) == "levelset")
     inputs[:problem] = LevelSet()
     inputs[:ldss_laplace] = false
     inputs[:ldss_differentiation] = false
+
+elseif (lowercase(problem_name) == "redist")
+    inputs[:problem] = LevelSet()
+    inputs[:ldss_laplace] = false
+    inputs[:ldss_differentiation] = false
     
 else
     

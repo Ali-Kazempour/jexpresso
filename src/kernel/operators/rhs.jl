@@ -659,7 +659,8 @@ end
 
 function build_rhs(SD::NSD_1D, QT::Inexact, PT::LevelSet, qp::Array, neqs, basis, ω, mesh::St_mesh, metrics::St_metrics, M, De, Le, time, inputs, Δt, T)
     #redist
-    if(rem(T,Δt) < 5e-4)
+    r = ::RoundingMode{:ToZero}
+    if(rem(T,Δt,r) < 5e-4)
         tempParams = params
         tempParams.PT = Redist
         prob = ODEProblem(rhs!,
@@ -728,11 +729,8 @@ function build_rhs(SD::NSD_1D, QT::Inexact, PT::Redist, qp::Array, neqs, basis, 
         idx = (i-1)*mesh.npoin
         qq[:,i] .= qp[idx+1:i*mesh.npoin]
     end    
-    Flux = zeros(T, mesh.npoin)
-    
-    for k = 1:mesh.npoin
-        for i = 1:mesh.npoin
-            Flux[i]= 
+
+    Flux = user_flux(T, SD, qp, mesh)
 
     for iel=1:mesh.nelem
         
@@ -747,9 +745,10 @@ function build_rhs(SD::NSD_1D, QT::Inexact, PT::Redist, qp::Array, neqs, basis, 
         for i=1:mesh.ngl
             dFdξ[1:neqs] .= 0.0
             for k = 1:mesh.ngl
-                dFdξ[1:neqs] .= dFdξ[1:neqs] .+ basis.dψ[k,i]*F[k, iel, 1:neqs]*metrics
+                dFdξ[1:neqs] .= dFdξ[1:neqs] .+ basis.dψ[k,i]*F[k, iel, 1:neqs]*metrics #interpolation
             end
-            rhs_el[i, iel, 1:neqs] .+= ω[i]*Jac*dFdξ[1:neqs] #+source
+            lhs= ω[i]*1*sgn(qq[i,iel])
+            rhs_el[i, iel, 1:neqs] .+= lhs*ω[i]*Jac*dFdξ[1:neqs] + M[:]*sgn(qp[i,iel]) #quadrature
         end
     end
     
