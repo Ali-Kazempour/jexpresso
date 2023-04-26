@@ -659,8 +659,7 @@ end
 
 function build_rhs(SD::NSD_1D, QT::Inexact, PT::LevelSet, qp::Array, neqs, basis, ω, mesh::St_mesh, metrics::St_metrics, M, De, Le, time, inputs, Δt, T)
     #redist
-    r = ::RoundingMode{:ToZero}
-    if(rem(T,Δt,r) < 5e-4)
+    if(rem(T,Δt) < 5e-4)
         tempParams = params
         tempParams.PT = Redist
         prob = ODEProblem(rhs!,
