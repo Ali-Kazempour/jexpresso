@@ -6,7 +6,7 @@ function driver(DT::ContGal,       #Space discretization type
                 TFloat) 
     
     sem = sem_setup(inputs)
-    @info sem.PT
+
     qp = initialize(sem.mesh.SD, sem.PT, sem.mesh, inputs, OUTPUT_DIR, TFloat)
         
     Δt = inputs[:Δt]; Nt = floor(Int64, (inputs[:tend] - inputs[:tinit])/Δt);

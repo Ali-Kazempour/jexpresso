@@ -7,4 +7,6 @@ struct Burgers <: AbstractProblem end
 struct SW <: AbstractProblem end
 struct Elliptic <: AbstractProblem end
 struct Helmholtz <: AbstractProblem end
-struct LevelSetTest <: AbstractProblem end
+struct LevelSet <: AbstractProblem end
+struct ShallowWater <: AbstractProblem end
+struct Euler <: AbstractProblem end

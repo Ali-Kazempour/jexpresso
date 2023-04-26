@@ -5,10 +5,11 @@ function user_inputs()
         # User define your inputs below: the order doesn't matter
         # IMPORTANT NOTICE: DO NOT FORGET the "," at the end of each entry!!!
         #---------------------------------------------------------------------------
+        :tinit                => 0,
         :tend                 => 1.5,
         :Δt                   => 1e-3,
         :ndiagnostics_outputs => 20, #these are steps, not seconds
-        :output_dir          => "./Outputs",
+        #:output_dir          => "./Outputs",
         #---------------------------------------------------------------------------
         #Integration and quadrature properties
         #---------------------------------------------------------------------------
@@ -16,6 +17,7 @@ function user_inputs()
         :interpolation_nodes => "lgl", # Choice: "lgl", "cg", "cgl"
         :nop                 => 4,     # Polynomial order
         :lexact_integration  => false,
+        :luser_bc            => true,
         #---------------------------------------------------------------------------
         # Physical parameters/constants:
         #---------------------------------------------------------------------------
@@ -33,9 +35,9 @@ function user_inputs()
         #---------------------------------------------------------------------------
         # 1D (lread_gmsh => faluse): the grid is built by jexpresso
         #---------------------------------------------------------------------------
-        :xmin          =>   0.0,
+        :xmin          =>   -1.0,
         :xmax          =>   1.0,
-        :nelx          =>   25,        
+        :nelx          =>   50,        
     ) #Dict
     #---------------------------------------------------------------------------
     # END User define your inputs below: the order doesn't matter

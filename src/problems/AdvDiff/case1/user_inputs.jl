@@ -37,9 +37,9 @@ function user_inputs()
         #---------------------------------------------------------------------------
         # 1D (lread_gmsh => faluse): the grid is built by jexpresso
         #---------------------------------------------------------------------------
-        :xmin          =>   0.0,
+        :xmin          =>   -1.0,
         :xmax          =>   1.0,
-        :nelx          =>   25,        
+        :nelx          =>   50,        
     ) #Dict
     #---------------------------------------------------------------------------
     # END User define your inputs below: the order doesn't matter

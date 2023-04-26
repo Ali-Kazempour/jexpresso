@@ -352,7 +352,13 @@ elseif (lowercase(problem_name) == "elliptic" ||
 elseif (lowercase(problem_name) == "helmholtz")
     inputs[:problem] = Helmholtz()
     inputs[:ldss_laplace] = true
-    inputs[:ldss_differentiation] = false    
+    inputs[:ldss_differentiation] = false  
+
+elseif (lowercase(problem_name) == "levelset")
+    inputs[:problem] = LevelSet()
+    inputs[:ldss_laplace] = false
+    inputs[:ldss_differentiation] = false
+    
 else
     
     #inputs[:neqs] = 1 #default
