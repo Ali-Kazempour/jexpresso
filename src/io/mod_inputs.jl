@@ -360,7 +360,7 @@ elseif (lowercase(problem_name) == "levelset")
     inputs[:ldss_differentiation] = false
 
 elseif (lowercase(problem_name) == "redist")
-    inputs[:problem] = LevelSet()
+    inputs[:problem] = Redist()
     inputs[:ldss_laplace] = false
     inputs[:ldss_differentiation] = false
     

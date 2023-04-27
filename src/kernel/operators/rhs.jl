@@ -659,22 +659,32 @@ end
 
 function build_rhs(SD::NSD_1D, QT::Inexact, PT::LevelSet, qp::Array, neqs, basis, ω, mesh::St_mesh, metrics::St_metrics, M, De, Le, time, inputs, Δt, T)
     #redist
-    if(rem(T,Δt) < 5e-4)
-        tempParams = params
-        tempParams.PT = Redist
-        prob = ODEProblem(rhs!,
-                        u,
-                        tspan,
-                        tempParams)
+    if(rem(time,Δt) < 5e-4)
+        println(" # Redistancing ODE ................................")
+        #@info " " inputs[:ode_solver] inputs[:tinit] inputs[:tend] inputs[:Δt]
+        u = zeros(T, mesh.npoin*neqs);
+        for i=1:neqs
+            idx = (i-1)*mesh.npoin
+            u[idx+1:i*mesh.npoin] .= qp[:,i]
+        end
+        #@info qp.neqs
+        tspan  = (time, time + Δt)
+        params = (; T, SD=mesh.SD, QT, PT=Redist(), neqs, basis, ω, mesh, metrics, inputs, M, De, Le, Δt)
+        prob   = ODEProblem(rhs!,
+                            u,
+                            tspan,
+                            params);
+
         @time    solution = solve(prob,
-                              inputs[:ode_solver],
-                              dt = Δt,
-                              save_everystep=false,
-                              saveat = range(T, T+(Δt/2), length=inputs[:ndiagnostics_outputs]),
-                              progress = true,
-                              progress_message = (dt, u, p, t) -> t)
-        println(" # Solving Redist ODE  ................................ DONE")
-        return solution
+                                inputs[:ode_solver],
+                                dt = Δt,
+                                save_everystep=false,
+                                saveat = range(time, time+Δt, length=2),
+                                progress = true,
+                                progress_message = (dt, u, p, t) -> t)
+        println(" # Redistancing ODE  ................................ DONE")
+
+        qp = solution.u[end]
     end
 
     F      = zeros(mesh.ngl, mesh.nelem, neqs)
@@ -746,8 +756,8 @@ function build_rhs(SD::NSD_1D, QT::Inexact, PT::Redist, qp::Array, neqs, basis, 
             for k = 1:mesh.ngl
                 dFdξ[1:neqs] .= dFdξ[1:neqs] .+ basis.dψ[k,i]*F[k, iel, 1:neqs]*metrics #interpolation
             end
-            lhs= ω[i]*1*sgn(qq[i,iel])
-            rhs_el[i, iel, 1:neqs] .+= lhs*ω[i]*Jac*dFdξ[1:neqs] + M[:]*sgn(qp[i,iel]) #quadrature
+            lhs= ω[i]*1*sgn(qq[i])
+            rhs_el[i, iel, 1:neqs] .+= lhs*ω[i]*Jac*dFdξ[1:neqs]  #+ M[:]*sgn(qp[i,iel]) #quadrature
         end
     end
     
@@ -761,4 +771,16 @@ function build_rhs(SD::NSD_1D, QT::Inexact, PT::Redist, qp::Array, neqs, basis, 
     apply_periodicity!(SD, RHS, qp, mesh, inputs, QT, metrics, basis.ψ, basis.dψ, ω, 0, neqs)
     
     return RHS
+end
+
+function sgn(φ)
+    Δx = 0.05
+    if φ > Δx
+        return 1
+    elseif φ < -Δx
+        return -1
+    else
+        s = φ/sqrt(φ^2 + (Δx)^2)
+        return s
+    end
 end
