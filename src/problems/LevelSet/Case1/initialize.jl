@@ -19,7 +19,7 @@ function initialize(SD::NSD_1D, ET::LevelSet, mesh::St_mesh, inputs::Dict, OUTPU
             x  = mesh.x[ip]
             
             q.qn[ip, 1] = exp(-σ*x*x)
- #           q.qn[ip, 1] = x #initial condition
+            #q.qn[ip,1] = sin(x)/2
             
         end
     end

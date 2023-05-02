@@ -660,7 +660,7 @@ end
 function build_rhs(SD::NSD_1D, QT::Inexact, PT::LevelSet, qp::Array, neqs, basis, ω, mesh::St_mesh, metrics::St_metrics, M, De, Le, time, inputs, Δt, T)
     #redist
     if(rem(time,Δt) < 5e-4)
-        println(" # Redistancing ODE ................................")
+        #println(" # Redistancing ODE ................................")
         #@info " " inputs[:ode_solver] inputs[:tinit] inputs[:tend] inputs[:Δt]
         u = zeros(T, mesh.npoin*neqs);
         for i=1:neqs
@@ -682,7 +682,7 @@ function build_rhs(SD::NSD_1D, QT::Inexact, PT::LevelSet, qp::Array, neqs, basis
                                 saveat = range(time, time+Δt, length=2),
                                 progress = true,
                                 progress_message = (dt, u, p, t) -> t)
-        println(" # Redistancing ODE  ................................ DONE")
+        #println(" # Redistancing ODE  ................................ DONE")
 
         qp = solution.u[end]
     end
@@ -757,7 +757,7 @@ function build_rhs(SD::NSD_1D, QT::Inexact, PT::Redist, qp::Array, neqs, basis, 
                 dFdξ[1:neqs] .= dFdξ[1:neqs] .+ basis.dψ[k,i]*F[k, iel, 1:neqs]*metrics #interpolation
             end
             lhs= ω[i]*1*sgn(qq[i])
-            rhs_el[i, iel, 1:neqs] .+= lhs*ω[i]*Jac*dFdξ[1:neqs]  #+ M[:]*sgn(qp[i,iel]) #quadrature
+            rhs_el[i, iel, 1:neqs] .+= lhs*ω[i]*Jac*dFdξ[1:neqs] + M[i,1:neqs]*sgn(qp[i]) #quadrature
         end
     end
     

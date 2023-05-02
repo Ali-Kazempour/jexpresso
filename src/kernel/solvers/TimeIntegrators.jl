@@ -35,7 +35,6 @@ function time_loop!(QT,
     #@info qp.neqs
     tspan  = (inputs[:tinit], inputs[:tend])
     params = (; T, SD=mesh.SD, QT, PT, neqs=qp.neqs, basis, ω, mesh, metrics, inputs, M, De, Le, Δt)
-    #for i: start loop
     prob   = ODEProblem(rhs!,
                         u,
                         tspan,

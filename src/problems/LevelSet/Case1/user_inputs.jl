@@ -6,10 +6,10 @@ function user_inputs()
         # IMPORTANT NOTICE: DO NOT FORGET the "," at the end of each entry!!!
         #---------------------------------------------------------------------------
         :tinit                => 0,
-        :tend                 => 1.5,
+        :tend                 => 5,
         :Δt                   => 1e-3,
         :ndiagnostics_outputs => 20, #these are steps, not seconds
-        #:output_dir          => "./Outputs",
+        :output_dir          => "./Outputs",
         #---------------------------------------------------------------------------
         #Integration and quadrature properties
         #---------------------------------------------------------------------------
@@ -35,8 +35,8 @@ function user_inputs()
         #---------------------------------------------------------------------------
         # 1D (lread_gmsh => faluse): the grid is built by jexpresso
         #---------------------------------------------------------------------------
-        :xmin          =>   -1.0,
-        :xmax          =>   1.0,
+        :xmin          =>   -1,
+        :xmax          =>   1,
         :nelx          =>   50,        
     ) #Dict
     #---------------------------------------------------------------------------
